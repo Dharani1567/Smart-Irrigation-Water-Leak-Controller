@@ -31,17 +31,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 /**
   * @brief  EXTI GPIO External Interrupt Callback Handler
   * @param  GPIO_Pin: Pin that triggered interrupt
+  * @note   Buttons are debounced and processed in Irrigation_FSM_Process() (single handler).
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    // Flow Sensor Pulse Input (PA2)
+    // Real hardware flow sensor pulse accumulator (if configured in EXTI mode)
     if (GPIO_Pin == FLOW_SENSOR_PIN)
     {
         Leak_OnPulseReceived();
     }
-    // System Reset Button (PA3)
-    else if (GPIO_Pin == FAULT_INJECT_PIN)
-    {
-        Irrigation_ResetSystem();
-    }
+    // FAULT_INJECT_PIN (PA3) is intentionally NOT handled here to prevent double-handling.
+    // It is handled with 50ms software debounce in Irrigation_FSM_Process().
 }

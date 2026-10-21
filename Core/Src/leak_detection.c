@@ -54,16 +54,28 @@ void Leak_Update_1s_Tick(uint8_t pump_is_active)
 
     // FAULT DETECTION ALGORITHM
     if (pump_is_active) {
+#if (DEMO_MODE == 1)
         if (g_leak_status == LEAK_STATUS_DRY_RUN_ALARM) {
             // Dry run fault active: no flow
             g_flow_rate_lmin = 0.0f;
             g_pulses_in_last_sec = 0;
         } else {
-            // Pump is ON and operating normally: simulate healthy water flow
+            // Demo mode: simulate healthy water flow so normal pumping doesn't falsely time out
             g_flow_rate_lmin = 2.4f;
             g_pulses_in_last_sec = 18;
             g_dry_run_timer_sec = 0;
         }
+#else
+        // Real hardware dry run detection: if pump is ON and no pulses detected
+        if (pulses == 0) {
+            g_dry_run_timer_sec++;
+            if (g_dry_run_timer_sec >= LEAK_DRY_RUN_TIMEOUT_SEC) {
+                g_leak_status = LEAK_STATUS_DRY_RUN_ALARM;
+            }
+        } else {
+            g_dry_run_timer_sec = 0;
+        }
+#endif
     } else {
         // Pump is OFF
         g_dry_run_timer_sec = 0;

@@ -50,14 +50,16 @@ static void Update_LED_Indicators(SystemState_t state)
         case SYSTEM_STATE_FAULT_UNINTENDED_LEAK:
             HAL_GPIO_WritePin(LED_GREEN_NORMAL_PORT, LED_GREEN_NORMAL_PIN, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(LED_YELLOW_IRR_PORT,   LED_YELLOW_IRR_PIN,   GPIO_PIN_RESET);
-            // Blink Red LED + Buzzer every ~500ms for demo visibility
+            // Blink Red LED + Buzzer every 500ms for alarm visibility
             {
                 static uint32_t blink_tick = 0;
+                static uint8_t  blink_state = 0;
                 uint32_t now_ms = HAL_GetTick();
                 if (now_ms - blink_tick >= 500) {
                     blink_tick = now_ms;
-                    HAL_GPIO_TogglePin(LED_RED_LEAK_PORT, LED_RED_LEAK_PIN);
-                    HAL_GPIO_TogglePin(BUZZER_PORT,       BUZZER_PIN);
+                    blink_state ^= 1;
+                    HAL_GPIO_WritePin(LED_RED_LEAK_PORT, LED_RED_LEAK_PIN, blink_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+                    HAL_GPIO_WritePin(BUZZER_PORT,       BUZZER_PIN,       blink_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
                 }
             }
             break;
@@ -100,31 +102,43 @@ void Irrigation_FSM_Process(void)
     static uint32_t last_1s_tick = 0;
     static uint32_t last_adc_sample = 0;
 
-    // Edge-detection for button presses (only trigger on LOW→HIGH transition)
-    static GPIO_PinState prev_flow_pin  = GPIO_PIN_RESET;
-    static GPIO_PinState prev_fault_pin = GPIO_PIN_RESET;
+    // Edge-detection with 50ms debounce for button inputs
+    static GPIO_PinState prev_flow_pin   = GPIO_PIN_RESET;
+    static GPIO_PinState prev_fault_pin  = GPIO_PIN_RESET;
+    static uint32_t      last_flow_tick  = 0;
+    static uint32_t      last_fault_tick = 0;
 
     GPIO_PinState cur_flow_pin  = HAL_GPIO_ReadPin(FLOW_SENSOR_PORT,  FLOW_SENSOR_PIN);
     GPIO_PinState cur_fault_pin = HAL_GPIO_ReadPin(FAULT_INJECT_PORT, FAULT_INJECT_PIN);
 
-    // Blue Button: rising edge → Trigger Pipe Leak Alarm
+    uint32_t now = HAL_GetTick();
+
+    // Blue Button (PA2): Rising edge + 50ms debounce → Pipe Leak Alarm
     if (cur_flow_pin == GPIO_PIN_SET && prev_flow_pin == GPIO_PIN_RESET) {
-        g_system_state = SYSTEM_STATE_FAULT_UNINTENDED_LEAK;
-        Leak_InjectFault(LEAK_STATUS_UNINTENDED_FLOW_ALARM);
-        PWM_Pump_Stop();
-        Update_LED_Indicators(SYSTEM_STATE_FAULT_UNINTENDED_LEAK);
-    }
-    // Red Button: rising edge
-    // If pump is active -> Triggers DRY RUN Alarm for testing/demo
-    // If in Alarm/Fault state -> Resets system back to Normal
-    else if (cur_fault_pin == GPIO_PIN_SET && prev_fault_pin == GPIO_PIN_RESET) {
-        if (g_system_state == SYSTEM_STATE_IRRIGATING) {
-            g_system_state = SYSTEM_STATE_FAULT_DRY_RUN;
-            Leak_InjectFault(LEAK_STATUS_DRY_RUN_ALARM);
+        if (now - last_flow_tick >= 50) {
+            last_flow_tick = now;
+            g_system_state = SYSTEM_STATE_FAULT_UNINTENDED_LEAK;
+            Leak_InjectFault(LEAK_STATUS_UNINTENDED_FLOW_ALARM);
             PWM_Pump_Stop();
-            Update_LED_Indicators(SYSTEM_STATE_FAULT_DRY_RUN);
-        } else {
-            Irrigation_ResetSystem();
+            Update_LED_Indicators(SYSTEM_STATE_FAULT_UNINTENDED_LEAK);
+        }
+    }
+    // Red Button (PA3): Rising edge + 50ms debounce (Single handler)
+    // Behaviour: if IRRIGATING -> DRY_RUN; if any fault -> IDLE; otherwise ignore.
+    else if (cur_fault_pin == GPIO_PIN_SET && prev_fault_pin == GPIO_PIN_RESET) {
+        if (now - last_fault_tick >= 50) {
+            last_fault_tick = now;
+            if (g_system_state == SYSTEM_STATE_IRRIGATING) {
+                g_system_state = SYSTEM_STATE_FAULT_DRY_RUN;
+                Leak_InjectFault(LEAK_STATUS_DRY_RUN_ALARM);
+                PWM_Pump_Stop();
+                Update_LED_Indicators(SYSTEM_STATE_FAULT_DRY_RUN);
+            }
+            else if (g_system_state == SYSTEM_STATE_FAULT_DRY_RUN ||
+                     g_system_state == SYSTEM_STATE_FAULT_UNINTENDED_LEAK) {
+                Irrigation_ResetSystem();
+            }
+            // Otherwise ignore (e.g. IDLE_MONITORING or LOCKOUT_COOLDOWN)
         }
     }
 
@@ -132,7 +146,7 @@ void Irrigation_FSM_Process(void)
     prev_fault_pin = cur_fault_pin;
 
     // Periodic ADC sampling (100ms) to ensure continuous potentiometer responsiveness
-    uint32_t now = HAL_GetTick();
+    now = HAL_GetTick();
     if (now - last_adc_sample >= 100) {
         last_adc_sample = now;
         ADC_Moisture_UpdateSample();

@@ -137,11 +137,11 @@ void LCD_Display_SystemStatus(uint8_t moisture_pct, uint8_t pump_on, uint8_t pwm
     char line2[17];
 
     if (state == SYSTEM_STATE_FAULT_DRY_RUN) {
-        snprintf(line1, sizeof(line1), "** DRY  RUN  ** ");
+        snprintf(line1, sizeof(line1), "ALARM: DRY RUN! ");
         snprintf(line2, sizeof(line2), "Press RED=Reset ");
     }
     else if (state == SYSTEM_STATE_FAULT_UNINTENDED_LEAK) {
-        snprintf(line1, sizeof(line1), "** PIPE LEAK ** ");
+        snprintf(line1, sizeof(line1), "ALARM: PIPE LEAK");
         snprintf(line2, sizeof(line2), "Press RED=Reset ");
     }
     else if (state == SYSTEM_STATE_LOCKOUT_COOLDOWN) {

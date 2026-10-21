@@ -46,6 +46,9 @@ extern "C" {
 #define LEAK_UNINTENDED_FLOW_MIN_PPS 1U    // Min pulses/sec with Pump OFF to trigger Pipe Burst/Leak Fault
 #define FLOW_CALIBRATION_FACTOR      7.5f  // Pulses per second per L/min (Standard YF-S201 sensor: Q = F / 7.5)
 
+// Demo Mode Configuration (1 = Simulation flow bypass, 0 = Real hardware pulse detection)
+#define DEMO_MODE                    1
+
 
 // Telemetry SPI Config
 #define SPI_TELEMETRY_HEADER         0xAAU // Packet start byte
