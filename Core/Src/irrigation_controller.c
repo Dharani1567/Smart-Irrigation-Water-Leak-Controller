@@ -23,6 +23,10 @@ static volatile uint32_t g_sec_tick_flag = 0;
   */
 static void Update_LED_Indicators(SystemState_t state)
 {
+    static SystemState_t prev_state = SYSTEM_STATE_INIT;
+    static uint32_t blink_tick = 0;
+    static uint8_t  blink_state = 0;
+
     switch (state) {
         case SYSTEM_STATE_IDLE_MONITORING:
             HAL_GPIO_WritePin(LED_GREEN_NORMAL_PORT, LED_GREEN_NORMAL_PIN, GPIO_PIN_SET);   // Green ON
@@ -50,23 +54,30 @@ static void Update_LED_Indicators(SystemState_t state)
         case SYSTEM_STATE_FAULT_UNINTENDED_LEAK:
             HAL_GPIO_WritePin(LED_GREEN_NORMAL_PORT, LED_GREEN_NORMAL_PIN, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(LED_YELLOW_IRR_PORT,   LED_YELLOW_IRR_PIN,   GPIO_PIN_RESET);
-            // Blink Red LED + Buzzer every 500ms for alarm visibility
-            {
-                static uint32_t blink_tick = 0;
-                static uint8_t  blink_state = 0;
-                uint32_t now_ms = HAL_GetTick();
-                if (now_ms - blink_tick >= 500) {
-                    blink_tick = now_ms;
-                    blink_state ^= 1;
-                    HAL_GPIO_WritePin(LED_RED_LEAK_PORT, LED_RED_LEAK_PIN, blink_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
-                    HAL_GPIO_WritePin(BUZZER_PORT,       BUZZER_PIN,       blink_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
-                }
+
+            uint32_t now_ms = HAL_GetTick();
+
+            // When entering a fault state, turn Red LED & Buzzer ON immediately
+            if (prev_state != SYSTEM_STATE_FAULT_DRY_RUN && prev_state != SYSTEM_STATE_FAULT_UNINTENDED_LEAK) {
+                blink_tick = now_ms;
+                blink_state = 1;
+                HAL_GPIO_WritePin(LED_RED_LEAK_PORT, LED_RED_LEAK_PIN, GPIO_PIN_SET);
+                HAL_GPIO_WritePin(BUZZER_PORT,       BUZZER_PIN,       GPIO_PIN_SET);
+            }
+            // After initial immediate ON, blink every 500ms
+            else if (now_ms - blink_tick >= 500) {
+                blink_tick = now_ms;
+                blink_state ^= 1;
+                HAL_GPIO_WritePin(LED_RED_LEAK_PORT, LED_RED_LEAK_PIN, blink_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(BUZZER_PORT,       BUZZER_PIN,       blink_state ? GPIO_PIN_SET : GPIO_PIN_RESET);
             }
             break;
 
         default:
             break;
     }
+
+    prev_state = state;
 }
 
 /**
