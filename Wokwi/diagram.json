@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "author": "Academic STM32 Embedded Systems Team",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-stm32-bluepill",
+      "id": "mcu",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot_moisture",
+      "top": -120,
+      "left": -180,
+      "attrs": { "label": "Soil Moisture Sensor (0-100%)" }
+    },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "lcd",
+      "top": -180,
+      "left": 120,
+      "attrs": { "pins": "4bit" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn_flow",
+      "top": 150,
+      "left": -180,
+      "attrs": { "color": "blue", "label": "Flow Sensor Pulses" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn_fault",
+      "top": 240,
+      "left": -180,
+      "attrs": { "color": "red", "label": "Virtual Fault / Reset" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_green",
+      "top": 150,
+      "left": 120,
+      "attrs": { "color": "green", "label": "Normal OK" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_yellow",
+      "top": 150,
+      "left": 180,
+      "attrs": { "color": "yellow", "label": "Irrigating" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_red",
+      "top": 150,
+      "left": 240,
+      "attrs": { "color": "red", "label": "Leak Alarm" }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer",
+      "top": 240,
+      "left": 200,
+      "attrs": { "label": "Alarm Buzzer" }
+    }
+  ],
+  "connections": [
+    [ "mcu:3V3.1", "pot_moisture:VCC", "red", [ "v0" ] ],
+    [ "mcu:GND.1", "pot_moisture:GND", "black", [ "v0" ] ],
+    [ "pot_moisture:SIG", "mcu:A0", "green", [ "v0" ] ],
+
+    [ "mcu:GND.1", "lcd:VSS", "black", [ "v0" ] ],
+    [ "mcu:3V3.1", "lcd:VDD", "red", [ "v0" ] ],
+    [ "mcu:GND.1", "lcd:RW", "black", [ "v0" ] ],
+    [ "mcu:B0", "lcd:RS", "blue", [ "v0" ] ],
+    [ "mcu:B1", "lcd:E", "blue", [ "v0" ] ],
+    [ "mcu:B12", "lcd:D4", "purple", [ "v0" ] ],
+    [ "mcu:B13", "lcd:D5", "purple", [ "v0" ] ],
+    [ "mcu:B14", "lcd:D6", "purple", [ "v0" ] ],
+    [ "mcu:B15", "lcd:D7", "purple", [ "v0" ] ],
+
+    [ "mcu:3V3.1", "btn_flow:1.l", "red", [ "v0" ] ],
+    [ "btn_flow:2.l", "mcu:A2", "orange", [ "v0" ] ],
+
+    [ "mcu:3V3.1", "btn_fault:1.l", "red", [ "v0" ] ],
+    [ "btn_fault:2.l", "mcu:A3", "grey", [ "v0" ] ],
+
+    [ "mcu:B5", "led_green:A", "green", [ "v0" ] ],
+    [ "mcu:GND.1", "led_green:C", "black", [ "v0" ] ],
+
+    [ "mcu:B6", "led_yellow:A", "yellow", [ "v0" ] ],
+    [ "mcu:GND.1", "led_yellow:C", "black", [ "v0" ] ],
+
+    [ "mcu:B7", "led_red:A", "red", [ "v0" ] ],
+    [ "mcu:GND.1", "led_red:C", "black", [ "v0" ] ],
+
+    [ "mcu:B8", "buzzer:2", "red", [ "v0" ] ],
+    [ "mcu:GND.1", "buzzer:1", "black", [ "v0" ] ]
+
+  ],
+  "surroundings": { "color": "gray" }
+}

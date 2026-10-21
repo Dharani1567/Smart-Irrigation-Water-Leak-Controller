@@ -1,0 +1,18 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Wokwi License (Private)
+wokwi.lic
+
+# Build binaries & objects
+*.o
+*.d
+*.obj
