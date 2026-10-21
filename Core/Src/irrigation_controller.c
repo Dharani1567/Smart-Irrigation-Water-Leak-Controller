@@ -48,10 +48,18 @@ static void Update_LED_Indicators(SystemState_t state)
 
         case SYSTEM_STATE_FAULT_DRY_RUN:
         case SYSTEM_STATE_FAULT_UNINTENDED_LEAK:
-            HAL_GPIO_WritePin(LED_GREEN_NORMAL_PORT, LED_GREEN_NORMAL_PIN, GPIO_PIN_RESET); // Green OFF
-            HAL_GPIO_WritePin(LED_YELLOW_IRR_PORT,   LED_YELLOW_IRR_PIN,   GPIO_PIN_RESET); // Yellow OFF
-            HAL_GPIO_WritePin(LED_RED_LEAK_PORT,     LED_RED_LEAK_PIN,     GPIO_PIN_SET);   // Red ON
-            HAL_GPIO_WritePin(BUZZER_PORT,            BUZZER_PIN,           GPIO_PIN_SET);   // Buzzer ON Alarm
+            HAL_GPIO_WritePin(LED_GREEN_NORMAL_PORT, LED_GREEN_NORMAL_PIN, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(LED_YELLOW_IRR_PORT,   LED_YELLOW_IRR_PIN,   GPIO_PIN_RESET);
+            // Blink Red LED + Buzzer every ~500ms for demo visibility
+            {
+                static uint32_t blink_tick = 0;
+                uint32_t now_ms = HAL_GetTick();
+                if (now_ms - blink_tick >= 500) {
+                    blink_tick = now_ms;
+                    HAL_GPIO_TogglePin(LED_RED_LEAK_PORT, LED_RED_LEAK_PIN);
+                    HAL_GPIO_TogglePin(BUZZER_PORT,       BUZZER_PIN);
+                }
+            }
             break;
 
         default:
@@ -249,6 +257,9 @@ void Irrigation_ResetSystem(void)
 {
     Leak_ClearAlarm();
     PWM_Pump_Stop();
+    // Force alarm outputs OFF explicitly (blink may leave them in ON state)
+    HAL_GPIO_WritePin(LED_RED_LEAK_PORT, LED_RED_LEAK_PIN, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(BUZZER_PORT,       BUZZER_PIN,       GPIO_PIN_RESET);
     g_system_state = SYSTEM_STATE_IDLE_MONITORING;
     g_state_timer_sec = 0;
     Update_LED_Indicators(SYSTEM_STATE_IDLE_MONITORING);

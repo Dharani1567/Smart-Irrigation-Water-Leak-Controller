@@ -50,11 +50,19 @@ int main(void)
 
     /* 4. Initialize Subsystem Drivers */
     LCD_Init();
-    LCD_SetCursor(0, 0);
-    LCD_PrintString(" SMART IRRIGATION ");
-    LCD_SetCursor(1, 0);
-    LCD_PrintString("   & LEAK CNTRL   ");
+
+    /* --- Startup Demo Splash --- */
+    LCD_SetCursor(0, 0); LCD_PrintString("Smart Irrigation");
+    LCD_SetCursor(1, 0); LCD_PrintString("  Leak Control  ");
     HAL_Delay(1500);
+
+    LCD_SetCursor(0, 0); LCD_PrintString("Dharani  & Bhanu");
+    LCD_SetCursor(1, 0); LCD_PrintString("Surya  &  Ayman ");
+    HAL_Delay(1200);
+
+    LCD_SetCursor(0, 0); LCD_PrintString("  CSE24 - AMSEC ");
+    LCD_SetCursor(1, 0); LCD_PrintString(" Initializing...");
+    HAL_Delay(1000);
     LCD_Clear();
 
     ADC_Moisture_Init();
@@ -62,6 +70,11 @@ int main(void)
     SPI_Telemetry_Init();
     Leak_Init();
     Irrigation_Init();
+
+    LCD_SetCursor(0, 0); LCD_PrintString("  SYSTEM READY  ");
+    LCD_SetCursor(1, 0); LCD_PrintString("Turn pot to test");
+    HAL_Delay(1200);
+    LCD_Clear();
 
     /* 5. Start TIM3 100ms Periodic Interrupt Timer */
     HAL_TIM_Base_Start_IT(&htim3);

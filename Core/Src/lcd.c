@@ -137,21 +137,26 @@ void LCD_Display_SystemStatus(uint8_t moisture_pct, uint8_t pump_on, uint8_t pwm
     char line2[17];
 
     if (state == SYSTEM_STATE_FAULT_DRY_RUN) {
-        snprintf(line1, sizeof(line1), "ALARM: DRY RUN! ");
-        snprintf(line2, sizeof(line2), "PUMP NO WATER   ");
+        snprintf(line1, sizeof(line1), "** DRY  RUN  ** ");
+        snprintf(line2, sizeof(line2), "Press RED=Reset ");
     }
     else if (state == SYSTEM_STATE_FAULT_UNINTENDED_LEAK) {
-        snprintf(line1, sizeof(line1), "ALARM: PIPE LEAK");
-        snprintf(line2, sizeof(line2), "UNINTENDED FLOW!");
+        snprintf(line1, sizeof(line1), "** PIPE LEAK ** ");
+        snprintf(line2, sizeof(line2), "Press RED=Reset ");
     }
     else if (state == SYSTEM_STATE_LOCKOUT_COOLDOWN) {
         snprintf(line1, sizeof(line1), "Mst:%2d%% LOCKOUT", moisture_pct);
-        snprintf(line2, sizeof(line2), "PUMP COOLDOWN   ");
+        snprintf(line2, sizeof(line2), "Cooling Down... ");
+    }
+    else if (pump_on) {
+        // Irrigating: show live moisture and actual PWM duty
+        snprintf(line1, sizeof(line1), "Mst:%2d%% Pmp:ON ", moisture_pct);
+        snprintf(line2, sizeof(line2), "PWM:%2d%% IRRIG. ", pwm_pct);
     }
     else {
-        const char *pmp_str = pump_on ? "ON " : "OFF";
-        snprintf(line1, sizeof(line1), "Mst:%2d%% Pmp:%s ", moisture_pct, pmp_str);
-        snprintf(line2, sizeof(line2), "PWM:%2d%% Flow:OK", pwm_pct);
+        // Idle/Normal: PWM is 0 when pump off
+        snprintf(line1, sizeof(line1), "Mst:%2d%% Pmp:OFF", moisture_pct);
+        snprintf(line2, sizeof(line2), "PWM: 0%% NORMAL  ");
     }
 
     // Refresh Line 1 if changed
