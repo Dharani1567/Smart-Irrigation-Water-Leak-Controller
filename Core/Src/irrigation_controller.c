@@ -92,21 +92,27 @@ void Irrigation_FSM_Process(void)
     static uint32_t last_1s_tick = 0;
     static uint32_t last_adc_sample = 0;
 
-    // Direct Active-HIGH Button Handling (Pressed when 3.3V / SET)
-    uint8_t cur_flow_pin = HAL_GPIO_ReadPin(FLOW_SENSOR_PORT, FLOW_SENSOR_PIN);
-    uint8_t cur_fault_pin = HAL_GPIO_ReadPin(FAULT_INJECT_PORT, FAULT_INJECT_PIN);
+    // Edge-detection for button presses (only trigger on LOW→HIGH transition)
+    static GPIO_PinState prev_flow_pin  = GPIO_PIN_RESET;
+    static GPIO_PinState prev_fault_pin = GPIO_PIN_RESET;
 
-    // Blue Button Pressed -> Trigger Pipe Leak Alarm immediately!
-    if (cur_flow_pin == GPIO_PIN_SET) {
+    GPIO_PinState cur_flow_pin  = HAL_GPIO_ReadPin(FLOW_SENSOR_PORT,  FLOW_SENSOR_PIN);
+    GPIO_PinState cur_fault_pin = HAL_GPIO_ReadPin(FAULT_INJECT_PORT, FAULT_INJECT_PIN);
+
+    // Blue Button: rising edge → Trigger Pipe Leak Alarm
+    if (cur_flow_pin == GPIO_PIN_SET && prev_flow_pin == GPIO_PIN_RESET) {
         g_system_state = SYSTEM_STATE_FAULT_UNINTENDED_LEAK;
         Leak_InjectFault(LEAK_STATUS_UNINTENDED_FLOW_ALARM);
         PWM_Pump_Stop();
         Update_LED_Indicators(SYSTEM_STATE_FAULT_UNINTENDED_LEAK);
     }
-    // Red Button Pressed -> Reset System back to Normal!
-    else if (cur_fault_pin == GPIO_PIN_SET) {
+    // Red Button: rising edge → Reset System
+    else if (cur_fault_pin == GPIO_PIN_SET && prev_fault_pin == GPIO_PIN_RESET) {
         Irrigation_ResetSystem();
     }
+
+    prev_flow_pin  = cur_flow_pin;
+    prev_fault_pin = cur_fault_pin;
 
     // Periodic ADC sampling (100ms) to ensure continuous potentiometer responsiveness
     uint32_t now = HAL_GetTick();

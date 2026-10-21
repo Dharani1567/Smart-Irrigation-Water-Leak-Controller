@@ -273,25 +273,17 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(SPI1_NSS_PORT, &GPIO_InitStruct);
 
-    /* Configure Flow Sensor EXTI Pin (PA2) */
+    /* Configure Flow Sensor Button Pin (PA2) - INPUT with pull-down for polling */
     GPIO_InitStruct.Pin = FLOW_SENSOR_PIN;
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     HAL_GPIO_Init(FLOW_SENSOR_PORT, &GPIO_InitStruct);
 
-    /* Enable EXTI2 Interrupt */
-    HAL_NVIC_SetPriority(FLOW_SENSOR_IRQn, 1, 0);
-    HAL_NVIC_EnableIRQ(FLOW_SENSOR_IRQn);
-
-    /* Configure Virtual Fault Injector Button EXTI Pin (PA3) */
+    /* Configure Virtual Fault / Reset Button Pin (PA3) - INPUT with pull-down for polling */
     GPIO_InitStruct.Pin = FAULT_INJECT_PIN;
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     HAL_GPIO_Init(FAULT_INJECT_PORT, &GPIO_InitStruct);
-
-    /* Enable EXTI3 Interrupt */
-    HAL_NVIC_SetPriority(FAULT_INJECT_IRQn, 3, 0);
-    HAL_NVIC_EnableIRQ(FAULT_INJECT_IRQn);
 
     /* Configure LED Pins & Buzzer on GPIOB */
     HAL_GPIO_WritePin(GPIOB, LED_GREEN_NORMAL_PIN | LED_YELLOW_IRR_PIN | LED_RED_LEAK_PIN | BUZZER_PIN, GPIO_PIN_RESET);
