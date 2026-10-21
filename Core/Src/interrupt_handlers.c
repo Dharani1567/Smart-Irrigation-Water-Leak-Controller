@@ -7,7 +7,6 @@
   */
 
 #include "main.h"
-#include "adc.h"
 #include "irrigation_controller.h"
 #include "leak_detection.h"
 
@@ -19,10 +18,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM3)
     {
-        // 1. Periodic ADC Sampling of Soil Moisture Sensor (Non-blocking Timer-Driven Sampling)
-        ADC_Moisture_UpdateSample();
+        // NOTE: ADC sampling is intentionally NOT done here.
+        // HAL_ADC_PollForConversion() blocks waiting for SysTick (priority 15),
+        // but SysTick cannot preempt this ISR -> deadlock -> MCU freezes.
+        // ADC is sampled every 100ms in the main loop via Irrigation_FSM_Process().
 
-        // 2. Increment System FSM 100ms Tick
+        // Increment System FSM 100ms Tick counter only
         Irrigation_Timer_100ms_Tick();
     }
 }
