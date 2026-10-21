@@ -114,9 +114,18 @@ void Irrigation_FSM_Process(void)
         PWM_Pump_Stop();
         Update_LED_Indicators(SYSTEM_STATE_FAULT_UNINTENDED_LEAK);
     }
-    // Red Button: rising edge → Reset System
+    // Red Button: rising edge
+    // If pump is active -> Triggers DRY RUN Alarm for testing/demo
+    // If in Alarm/Fault state -> Resets system back to Normal
     else if (cur_fault_pin == GPIO_PIN_SET && prev_fault_pin == GPIO_PIN_RESET) {
-        Irrigation_ResetSystem();
+        if (g_system_state == SYSTEM_STATE_IRRIGATING) {
+            g_system_state = SYSTEM_STATE_FAULT_DRY_RUN;
+            Leak_InjectFault(LEAK_STATUS_DRY_RUN_ALARM);
+            PWM_Pump_Stop();
+            Update_LED_Indicators(SYSTEM_STATE_FAULT_DRY_RUN);
+        } else {
+            Irrigation_ResetSystem();
+        }
     }
 
     prev_flow_pin  = cur_flow_pin;
@@ -189,7 +198,7 @@ void Irrigation_FSM_Process(void)
             uint8_t target_duty = PWM_Calculate_DutyFromMoisture(moisture_pct);
             PWM_Pump_SetDuty(target_duty);
 
-            // Condition 1: Moisture reaches target threshold (70%) -> Stop Irrigation
+            // Condition 1: Moisture reaches target threshold (50%) -> Stop Irrigation
             if (moisture_pct >= MOISTURE_THRESHOLD_TARGET) {
                 PWM_Pump_Stop();
                 g_system_state = SYSTEM_STATE_IDLE_MONITORING;
@@ -207,8 +216,8 @@ void Irrigation_FSM_Process(void)
             PWM_Pump_Stop();
             Update_LED_Indicators(SYSTEM_STATE_LOCKOUT_COOLDOWN);
 
-            // Wait for cooldown period (15 seconds)
-            if (g_state_timer_sec >= IRRIGATION_COOLDOWN_SEC) {
+            // Immediately exit cooldown if soil moisture restored or timer expired
+            if (moisture_pct >= MOISTURE_THRESHOLD_TARGET || g_state_timer_sec >= IRRIGATION_COOLDOWN_SEC) {
                 g_system_state = SYSTEM_STATE_IDLE_MONITORING;
                 g_state_timer_sec = 0;
             }

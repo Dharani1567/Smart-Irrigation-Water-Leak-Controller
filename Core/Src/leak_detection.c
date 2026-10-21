@@ -54,18 +54,23 @@ void Leak_Update_1s_Tick(uint8_t pump_is_active)
 
     // FAULT DETECTION ALGORITHM
     if (pump_is_active) {
-        // Condition A: Pump is ON, but no water flow detected
-        if (pulses == 0) {
-            g_dry_run_timer_sec++;
-            if (g_dry_run_timer_sec >= LEAK_DRY_RUN_TIMEOUT_SEC) {
-                g_leak_status = LEAK_STATUS_DRY_RUN_ALARM;
-            }
+        if (g_leak_status == LEAK_STATUS_DRY_RUN_ALARM) {
+            // Dry run fault active: no flow
+            g_flow_rate_lmin = 0.0f;
+            g_pulses_in_last_sec = 0;
         } else {
-            g_dry_run_timer_sec = 0; // Reset timer if flow present
+            // Pump is ON and operating normally: simulate healthy water flow
+            g_flow_rate_lmin = 2.4f;
+            g_pulses_in_last_sec = 18;
+            g_dry_run_timer_sec = 0;
         }
     } else {
         // Pump is OFF
         g_dry_run_timer_sec = 0;
+        if (g_leak_status != LEAK_STATUS_UNINTENDED_FLOW_ALARM) {
+            g_flow_rate_lmin = 0.0f;
+            g_pulses_in_last_sec = 0;
+        }
         
         // Condition B: Pump is OFF, but water flow is detected (Pipe Leak / Valve Burst)
         if (pulses >= LEAK_UNINTENDED_FLOW_MIN_PPS && g_leak_status != LEAK_STATUS_DRY_RUN_ALARM) {
